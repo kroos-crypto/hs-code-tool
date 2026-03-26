@@ -7,35 +7,36 @@ import io
 
 st.set_page_config(page_title="HS Code Filler", layout="wide")
 st.title("HS Code Auto-Filler")
-st.markdown("Excel hochladen – HS Codes werden automatisch eingetragen")
+st.markdown("Upload your Excel file – HS Codes will be automatically assigned")
 
-uploaded_file = st.file_uploader("Excel Datei hier hochladen", type=['xlsx', 'xls'])
+uploaded_file = st.file_uploader("Upload Excel file here", type=['xlsx', 'xls'])
 
 if uploaded_file:
-    st.success("Datei hochgeladen!")
+    st.success("✓ File uploaded successfully!")
     df = pd.read_excel(uploaded_file, sheet_name='Data sheet')
     unique = df.drop_duplicates(subset=['Style number']).copy()
-    st.info(str(len(unique)) + " verschiedene Produkttypen gefunden")
+    st.info(str(len(unique)) + " unique product types found")
 
     results = []
     for idx, row in unique.iterrows():
         code = classify_hs_code(row)
         count = len(df[df['Style number'] == row['Style number']])
         results.append({
-            'Produkt': row['Style/Display name'],
-            'Kategorie': row['Boozt Product Category'],
-            'Geschlecht': row.get('Gender (F = Female, M = Male, U = Unisex)', ''),
+            'Product': row['Style/Display name'],
+            'Category': row['Boozt Product Category'],
+            'Gender': row.get('Gender (F = Female, M = Male, U = Unisex)', ''),
+            'Material': row.get('Material composition', ''),
             'HS Code': code,
-            'Varianten': count,
-            'Beschreibung': get_notes(code)
+            'Variants': count,
+            'Description': get_notes(code)
         })
 
-    st.subheader("Automatische Klassifizierung")
+    st.subheader("Automatic HS Code Classification")
     st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
 
-    hs_mapping = dict(zip(unique['Style number'], [classify_hs_code(r) for _, r in unique.iterrows()]))
+    hs_mapping = {row['Style number']: classify_hs_code(row) for _, row in unique.iterrows()}
 
-    if st.button("HS Codes eintragen und Excel downloaden", use_container_width=True):
+    if st.button("✨ Apply HS Codes & Download Excel", use_container_width=True):
         input_buffer = io.BytesIO(uploaded_file.getvalue())
         wb = load_workbook(input_buffer)
         ws = wb['Data sheet']
@@ -58,13 +59,13 @@ if uploaded_file:
         wb.save(output_buffer)
         output_buffer.seek(0)
 
-        st.success("Fertig!")
+        st.success("✓ HS Codes successfully applied!")
         st.download_button(
-            label="Excel herunterladen",
+            label="📥 Download Excel with HS Codes",
             data=output_buffer.getvalue(),
             file_name=Path(uploaded_file.name).stem + "_with_hs_codes.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
 else:
-    st.info("Bitte lade deine Excel-Datei hoch")
+    st.info("👆 Please upload your Excel file to get started")
