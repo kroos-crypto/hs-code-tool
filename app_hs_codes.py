@@ -34,7 +34,8 @@ if uploaded_file:
     st.subheader("Automatic HS Code Classification")
     st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
 
-    hs_mapping = {row['Style number']: classify_hs_code(row) for _, row in unique.iterrows()}
+    # Build mapping with string keys to avoid int/str mismatch with openpyxl
+    hs_mapping = {str(row['Style number']): classify_hs_code(row) for _, row in unique.iterrows()}
 
     if st.button("✨ Apply HS Codes & Download Excel", use_container_width=True):
         input_buffer = io.BytesIO(uploaded_file.getvalue())
@@ -51,7 +52,7 @@ if uploaded_file:
 
         if col_idx and style_col_idx:
             for row_idx in range(2, ws.max_row + 1):
-                style_val = ws.cell(row=row_idx, column=style_col_idx).value
+                style_val = str(ws.cell(row=row_idx, column=style_col_idx).value)
                 if style_val in hs_mapping:
                     ws.cell(row=row_idx, column=col_idx, value=hs_mapping[style_val])
 
